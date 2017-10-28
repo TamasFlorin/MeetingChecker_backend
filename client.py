@@ -2,6 +2,8 @@ import requests
 import RPi.GPIO as GPIO
 import time
 import sys
+import subprocess
+from socket import *
 
 # Set input GPIO
 INPUT_GPIO = 37
@@ -12,16 +14,30 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(INPUT_GPIO, GPIO.IN)
 
 # Global defines
-DEFAULT_TIME_OUT = 120 # in seconds
+DEFAULT_TIME_OUT = 60#120 # in seconds
 
 # Room name
-ROOM_NAME = 'FARCASESTI'
+ROOM_NAME = ''
 
 # SERVER DATA
-CONNECTION_STRING = 'http://10.5.5.25:5000/update_movement'
+CONNECTION_STRING= 'http://10.5.5.25:5000/update_movement'
+
+# VIDEO_PATH
+#VIDEO_PATH = "my_video.avi"
 
 def send_message(status):
-    dictionaryToSend = { 'name': ROOM_NAME , 'status' : str(status) }
+    i = 0
+    p = subprocess.Popen(("fswebcam","-q","-r 640x480","1.jpg"))
+    p.wait()
+
+
+    f = open("1.jpg","rb")
+    byteData = f.read()
+    byteData = str(byteData).encode('base64','strict')
+    
+    dictionaryToSend = { 'name': ROOM_NAME , 'status' : str(status),
+                          'image' : str(byteData)}
+    f.close()
     sendResult = requests.post(CONNECTION_STRING,json=dictionaryToSend)
     print('Reponse from server:',sendResult.text)
 
@@ -37,11 +53,12 @@ def send_movement():
         
         if isMoving == 1:
             lastMovement = time.time()
-            print("Rick is moving")
+            #print("Rick is moving")
             
         isTaken = ( time.time() - lastMovement ) <= DEFAULT_TIME_OUT
-
-        if lastRoomState != isTaken:
+        
+        if lastRoomState != isTaken or time.time() - start >=5:
+            start = time.time()
             lastRoomState = isTaken
             send_message(int(isTaken))
 
