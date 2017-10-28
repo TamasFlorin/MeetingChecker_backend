@@ -27,6 +27,7 @@ def send_message(status):
 
 def send_movement():
     lastMovement = 0
+    lastRoomState = 0
     start = time.time()
     
     send_message(0) # Initially room state is 0
@@ -39,9 +40,9 @@ def send_movement():
             print("Rick is moving")
             
         isTaken = ( time.time() - lastMovement ) <= DEFAULT_TIME_OUT
-        
-        if time.time() - start >= DEFAULT_TIME_OUT:
-            start = time.time()
+
+        if lastRoomState != isTaken:
+            lastRoomState = isTaken
             send_message(int(isTaken))
 
 if __name__ == "__main__":
