@@ -6,6 +6,8 @@ app = Flask(__name__)
 
 rooms_hash = {}
 persons_count_hash = {}
+humidity_hash = {}
+temperature_hash = {}
 
 def get_number_of_persons(image_path):
 	hog = cv2.HOGDescriptor()
@@ -24,9 +26,11 @@ def update_movement():
 	try:
 		rooms_hash[ content["name"] ] = content["status"]
 
-		save_image(content["name"], str(content["image"]).decode('base64'))
+		humidity_hash[ content["name"] ] = content["humidity"]
 
-		#print (content["name"] + " set as " + content["status"])
+		temperature_hash[ content["name"] ] = content["temperature"]
+
+		save_image(content["name"], str(content["image"]).decode('base64'))
 
 		result = get_number_of_persons(content["name"] + ".jpeg")
 
@@ -67,7 +71,7 @@ def get_room_status():
 		room_name = request.args.get("name")
 
 		if room_name in rooms_hash.keys():
-			return jsonify( { "status" : "" + rooms_hash[ room_name ] , "count" : get_persons_count(room_name) } )
+			return jsonify( { "status" : "" + rooms_hash[ room_name ] , "count" : get_persons_count(room_name), "humidity" : humidity_hash[room_name], "temperature" : temperature_hash[room_name] } )
 	except:
 		return jsonify( { "status" : "Bad format!" })
 	return jsonify( { "status" : "Room inexistent!"} )
@@ -78,7 +82,7 @@ def get_rooms_JSON():
 	rooms_json = []
 
 	for room_name in rooms_hash:
-		rooms_json.append( { "name" : room_name, "status" : rooms_hash[ room_name ], "count" : get_persons_count(room_name) } )
+		rooms_json.append( { "name" : room_name, "status" : rooms_hash[ room_name ], "count" : get_persons_count(room_name), "humidity" : humidity_hash[room_name], "temperature" : temperature_hash[room_name] } )
 
 	return jsonify(rooms_json)
 
@@ -103,6 +107,10 @@ def get_rooms_CSV():
 		rooms_CSV += rooms_hash[ key ]
 		rooms_CSV += ","
 		rooms_CSV += get_persons_count(key)
+		rooms_CSV += ","
+		rooms_CSV += humidity_hash[ key ]
+		rooms_CSV += ","
+		rooms_CSV += temperature_hash[ key ]
 		rooms_CSV += ";"
 
 	return rooms_CSV
