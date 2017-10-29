@@ -4,17 +4,20 @@ import time
 import sys
 import subprocess
 from socket import *
+import Adafruit_DHT as dht
 
 # Set input GPIO
 INPUT_GPIO = 37
+INPUT_TEMPERATURE_GPIO = 23
 
 # GPIO configuration
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(INPUT_GPIO, GPIO.IN)
+#GPIO.setup(INPUT_TEMPERATURE_GPIO, GPIO.IN)
 
 # Global defines
-DEFAULT_TIME_OUT = 60#120 # in seconds
+DEFAULT_TIME_OUT = 120 # in seconds
 
 # Room name
 ROOM_NAME = ''
@@ -25,20 +28,34 @@ CONNECTION_STRING= 'http://10.5.5.25:5000/update_movement'
 # VIDEO_PATH
 #VIDEO_PATH = "my_video.avi"
 
-def send_message(status):
-    i = 0
+# added as a last try to improve the final project
+# do not mind this bullshit
+def get_weather():
+    h,t = dht.read_retry(dht.AM2302 ,INPUT_TEMPERATURE_GPIO)
+    return h,t
+
+def get_image_data():
     p = subprocess.Popen(("fswebcam","-q","-r 640x480","1.jpg"))
     p.wait()
-
-
     f = open("1.jpg","rb")
     byteData = f.read()
     byteData = str(byteData).encode('base64','strict')
+    f.close()
+    return byteData
+
+def send_message(status):
+    h,t = get_weather()
+    humidity = str(h)
+    temperature = str(t)
+    image = get_image_data()
     
     dictionaryToSend = { 'name': ROOM_NAME , 'status' : str(status),
-                          'image' : str(byteData)}
-    f.close()
+                         'image' : str(image),'humidity': humidity,
+                         'temperature' : temperature
+                        }
+   
     sendResult = requests.post(CONNECTION_STRING,json=dictionaryToSend)
+    
     print('Reponse from server:',sendResult.text)
 
 def send_movement():
@@ -60,7 +77,10 @@ def send_movement():
         if lastRoomState != isTaken or time.time() - start >=5:
             start = time.time()
             lastRoomState = isTaken
-            send_message(int(isTaken))
+            try:
+                send_message(int(isTaken))
+            except:
+                print("Got an exception!Retrying...")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -68,3 +88,4 @@ if __name__ == "__main__":
     else:
         ROOM_NAME = sys.argv[1]
         send_movement()
+
