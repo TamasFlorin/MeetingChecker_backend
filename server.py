@@ -1,3 +1,8 @@
+'''
+Created on Oct 28, 2016
+@author: Bogdan Boboc (bogdanboboc97@gmail.com) && Florin Tamas (tamasflorin@live.com) 
+'''
+
 from flask import Flask, request, jsonify
 import cv2
 import numpy as np
